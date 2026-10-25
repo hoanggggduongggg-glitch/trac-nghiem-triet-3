@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ôn tập Triết học – Chương 2</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#282e3e;--mut:#586380;--pri:#4255ff;--ok:#23b26d;--okbg:#e6f7ef;--no:#ff5a5f;--nobg:#ffeded;--bd:#d9dde8}
+@media(prefers-color-scheme:dark){:root{--bg:#0a092d;--card:#2e3856;--ink:#f6f7fb;--mut:#a8b0c8;--bd:#4a5578;--okbg:#14382a;--nobg:#442329}}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+#app{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:28px;margin:8px 0}h2{font-size:21px;margin:0 0 18px}
+.card{background:var(--card);border-radius:16px;padding:24px;box-shadow:0 2px 12px #0001}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:600;margin-bottom:8px}
+.tag{background:var(--pri);color:#fff;border-radius:99px;padding:2px 12px;font-size:13px}
+.bar{height:8px;background:var(--bd);border-radius:9px;margin-bottom:16px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pri);transition:width .3s}
+.opts{display:grid;gap:12px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;width:100%;font:inherit;color:inherit;background:var(--card);border:2px solid var(--bd);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.15s}
+.opt:hover:not(:disabled){border-color:var(--pri);transform:translateY(-1px)}
+.opt b{flex:none;width:30px;height:30px;border-radius:50%;background:var(--bd);display:grid;place-items:center;font-size:14px}
+.opt:disabled{cursor:default}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}.opt.ok b{background:var(--ok);color:#fff}
+.opt.no{border-color:var(--no);background:var(--nobg)}.opt.no b{background:var(--no);color:#fff}
+.fb{margin-top:18px;padding:14px 16px;border-radius:12px;animation:pop .3s}
+.fb.ok{background:var(--okbg);border-left:6px solid var(--ok)}.fb.no{background:var(--nobg);border-left:6px solid var(--no)}
+.fb strong{font-size:18px;display:block;margin-bottom:4px}
+.btn{font:inherit;font-weight:700;background:var(--pri);color:#fff;border:0;border-radius:12px;padding:12px 24px;cursor:pointer;margin-top:14px}
+.btn.alt{background:var(--card);color:var(--pri);border:2px solid var(--pri)}
+.btn:hover{filter:brightness(1.1)}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes pop{from{opacity:0;transform:scale(.96)}}
+.sel{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.sel button{font:inherit;font-weight:600;padding:10px 20px;border-radius:12px;border:2px solid var(--bd);background:var(--card);color:var(--ink);cursor:pointer}
+.sel button.on{border-color:var(--pri);color:var(--pri)}
+.score{text-align:center}.score .n{font-size:64px;font-weight:800;color:var(--pri)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.warn{color:var(--no);font-weight:700}.good{color:var(--ok);font-weight:700}
+.wrong{border-left:5px solid var(--no);padding:10px 14px;margin:12px 0;background:var(--nobg);border-radius:8px}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:9}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<canvas id="cv"></canvas>
+<script src="questions.js"></script>
+<script>
+const app=document.getElementById('app'),cv=document.getElementById('cv'),cx=cv.getContext('2d');
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const bank=(window.BANK||[]).map(([t,q,c,...r])=>({t,q,c,w:r.slice(0,3),ex:r[3]}));
+const OK=["Chính xác! 🎉","Tuyệt vời! 👏","Đúng rồi, quá đỉnh! 🌟","Giỏi lắm! 🔥"];
+const NO=["Chưa đúng, đừng nản nhé! 💪","Gần được rồi, lần sau sẽ đúng! 🌱","Sai một chút thôi, xem giải thích nha! 📘"];
+const pick1=a=>a[Math.random()*a.length|0];
+let S,N=10;
+
+function home(){
+  const opts=[10,20,30,bank.length].filter((v,i,a)=>v<=bank.length&&a.indexOf(v)===i);
+  N=Math.min(N,bank.length);
+  app.innerHTML=`<div class="card"><h1>📘 Ôn tập Triết học – Chương 2</h1>
+  <p>Chủ nghĩa duy vật biện chứng · Ngân hàng <b>${bank.length}</b> câu trắc nghiệm</p>
+  <p>Chọn số câu muốn làm:</p><div class="sel">${opts.map(v=>`<button data-n="${v}" class="${v==N?'on':''}">${v==bank.length?'Tất cả ('+v+')':v+' câu'}</button>`).join('')}</div>
+  <button class="btn" id="go">Bắt đầu làm bài →</button>
+  <p style="color:var(--mut);font-size:14px">Mẹo: bấm phím 1–4 (hoặc A–D) để chọn, Enter để sang câu tiếp.</p></div>`;
+  app.querySelectorAll('.sel button').forEach(b=>b.onclick=()=>{N=+b.dataset.n;home()});
+  document.getElementById('go').onclick=()=>start(shuffle(bank).slice(0,N));
+}
+
+function start(list){
+  S={list:list.map(x=>{const o=shuffle([x.c,...x.w]);return{...x,o,a:o.indexOf(x.c)}}),i:0,res:[],done:false};
+  show();
+}
+
+function show(){
+  const x=S.list[S.i];S.done=false;
+  app.innerHTML=`<div class="top"><span>Câu ${S.i+1}/${S.list.length}</span><span class="tag">${x.t}</span></div>
+  <div class="bar"><i style="width:${S.i/S.list.length*100}%"></i></div>
+  <div class="card" id="card"><h2>${x.q}</h2><div class="opts">${x.o.map((o,k)=>`<button class="opt" data-k="${k}"><b>${'ABCD'[k]}</b><span>${o}</span></button>`).join('')}</div><div id="fb"></div></div>`;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>choose(+b.dataset.k));
+}
+
+function choose(k){
+  if(S.done)return;S.done=true;
+  const x=S.list[S.i],ok=k===x.a,bs=app.querySelectorAll('.opt');
+  S.res.push({x,k,ok});
+  bs.forEach((b,i)=>{b.disabled=true;if(i===x.a)b.classList.add('ok');else if(i===k)b.classList.add('no')});
+  const last=S.i===S.list.length-1;
+  document.getElementById('fb').innerHTML=`<div class="fb ${ok?'ok':'no'}"><strong>${ok?pick1(OK):pick1(NO)}</strong>${ok?'':`Đáp án đúng: <b>${'ABCD'[x.a]}</b>. `}💡 ${x.ex}</div>
+  <button class="btn" id="nx">${last?'Xem kết quả 🏁':'Câu tiếp →'}</button>`;
+  document.getElementById('nx').onclick=next;
+  if(ok)confetti();else{const c=document.getElementById('card');c.classList.add('shake')}
+}
+
+function next(){S.i++;S.i<S.list.length?show():result()}
+
+function result(){
+  const n=S.res.length,right=S.res.filter(r=>r.ok).length,sc=(right/n*10).toFixed(1),pct=Math.round(right/n*100);
+  const tp={};S.res.forEach(r=>{(tp[r.x.t]=tp[r.x.t]||[0,0])[r.ok?0:1]++});
+  const topics=Object.entries(tp).map(([t,[a,b]])=>({t,a,n:a+b,p:Math.round(a/(a+b)*100)})).sort((u,v)=>u.p-v.p);
+  const wrong=S.res.filter(r=>!r.ok);
+  const msg=pct>=90?'Xuất sắc! 🏆':pct>=70?'Khá tốt, cố thêm chút nữa! 👍':pct>=50?'Cần ôn thêm một chút nhé! 📚':'Đừng nản, ôn lại rồi làm lại nha! 💪';
+  app.innerHTML=`<div class="card score"><div>Điểm của bạn</div><div class="n">${sc}/10</div><p>Đúng <b>${right}</b>/${n} câu (${pct}%) – ${msg}</p></div>
+  <div class="card" style="margin-top:16px"><h2>📊 Kết quả theo chủ đề</h2>${topics.map(t=>`<div class="row"><span>${t.t}</span><span>${t.a}/${t.n} · ${t.p}% ${t.p<70?'<span class="warn">→ Cần ôn lại</span>':'<span class="good">✓ Tốt</span>'}</span></div>`).join('')}</div>
+  <div class="card" style="margin-top:16px"><h2>❌ Các câu làm sai (${wrong.length})</h2>${wrong.length?wrong.map(r=>`<div class="wrong"><b>${r.x.q}</b><br>Bạn chọn: ${r.x.o[r.k]}<br><span class="good">Đáp án đúng: ${r.x.c}</span><br>💡 ${r.x.ex}<br><small>Chủ đề: ${r.x.t}</small></div>`).join(''):'<p class="good">Không sai câu nào, quá xịn! 🎉</p>'}</div>
+  <div style="margin-top:16px">${wrong.length?'<button class="btn" id="rw">Làm lại các câu sai</button> ':''}<button class="btn alt" id="nw">Làm bài mới</button></div>`;
+  if(pct>=70)confetti();
+  const rw=document.getElementById('rw');if(rw)rw.onclick=()=>start(wrong.map(r=>r.x));
+  document.getElementById('nw').onclick=home;
+}
+
+function confetti(){
+  cv.width=innerWidth;cv.height=innerHeight;
+  const cols=['#4255ff','#23b26d','#ffcd1f','#ff5a5f','#a259ff'];
+  const ps=Array.from({length:110},()=>({x:innerWidth/2,y:innerHeight/2,vx:(Math.random()-.5)*16,vy:Math.random()*-14-3,s:5+Math.random()*6,c:pick1(cols),r:Math.random()*6}));
+  let f=0;(function loop(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.35;p.r+=.2;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore()});
+    if(++f<110)requestAnimationFrame(loop);else cx.clearRect(0,0,cv.width,cv.height);
+  })();
+}
+
+document.addEventListener('keydown',e=>{
+  if(!S||!document.querySelector('.opt'))return;
+  const k='1234'.indexOf(e.key);const l='abcd'.indexOf(e.key.toLowerCase());
+  if(!S.done&&(k>=0||l>=0))choose(k>=0?k:l);
+  else if(S.done&&(e.key==='Enter'||e.key===' ')){e.preventDefault();next()}
+});
+
+bank.length?home():app.innerHTML='<div class="card">Chưa có câu hỏi. Hãy kiểm tra file questions.js.</div>';
+</script>
+</body>
+</html>
